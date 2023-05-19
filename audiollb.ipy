@@ -1,0 +1,78 @@
+#@title ## Part1: Display instructions and tips
+
+%%html
+<style type="text/css">
+div, ul.tips {
+  font-size: 17px;
+  line-height: 25px;
+}
+ul.tips { 
+  max-width: 70%;
+  margin-left: 0;
+  padding-left: 20px;
+}
+ul.tips li {
+  margin-bottom: 7px;
+}
+ul.tips li code { 
+  font-size: 16px;
+  background: #2c2c2c; 
+  padding: 2px 5px; 
+}
+ul.tips li ul.sublist li {
+  line-height: auto;
+  margin-bottom: 5px;
+}
+h2, div {
+  margin-top: 10px;
+  margin-bottom: 20px;
+}
+.italic {
+  font-style: italic;
+}
+</style>
+<h2>Notebook usage</h2>
+<ul class="tips">
+  <li>All directory and file paths should be relative to your Google Drive root (My Drive). E.g. <code>output_dir</code> value should be <code>Music/AI-Generated-Sounds</code> if you have a directory called <i>Music</i> in your Drive, containing a subdirectory called <i>AI-Generated-Sounds</i>. All paths are case-sensitive.</li>
+  <li>Should you opt not to mount Google Drive, directory <i>faux_drive</i> (<code>/content/faux_drive</code>) found in the Files browser of the Colab runtime works as if it was your <i>My Drive</i>. You may use it to upload/download files via Colab's own Files browser pretending it's your Google Drive.</li>
+  <li>Model <code>audioldm-full-l</code> requires Premium GPU. Other models run with standard GPU.</li>
+  <li><code>local_models_dir</code> (optional but recommended) will save the used checkpoints in your Google Drive and/or use them from there if already available. This will speed up setup significantly next times you use this notebook.</li>
+  <li><code>output_dir</code> is where the generated WAV files will be saved.</li>
+  <li><code>batch</code> will just repeat whatever you're generating that many times.</li>
+  <li>If <code>seed</code> is set to 0 (zero), a random seed will be used.</li>
+  <li>You may use <code>;</code> in the <code>prompt</code> field as a separator, in which case a separate audio file will be generated for each semicolon-separated prompt in a single run.</li>
+  <li>If you use <code>init_audio_file</code> (path to an existing audio file in your Google Drive), the notebook will try to guess what you want to do according to other parameters you have given, as follows:</li>
+  <li><b>Audio-to-Audio generation</b>
+    <ul class="sublist">
+      <li>Leave <code>prompt</code> field empty.</li>
+      <li>Leave <code>style_strength</code> at zero.</li>
+      <!-- <li>Leave <code>superresolution</code> unchecked.</li> -->
+    </ul>
+  </li>
+  <li><b>Style Transfer</b>
+    <ul class="sublist">
+      <li>Fill <code>prompt</code> field.</li>
+      <li>Set <code>style_strength</code> (greater than zero).</li>
+      <!-- <li>Leave <code>superresolution</code> unchecked.</li> -->
+    </ul>
+  </li>
+  <!-- <li><b>Super-restolution</b>
+    <ul class="sublist">
+      <li>Check <code>superresolution</code> checkbox.</li>
+      <li><code>prompt</code> and <code>style_strength</code> are automatically ignored.
+  </li> -->
+</ul>
+
+<h2>Prompt tips</h2>
+<div>Naturally a <i>good</i> prompt depends on what you're after, but generally:</div>
+<ul class="tips">
+  <li>Consider adding more detailed description of what kind of sound you want (add adjectives, etc.).</li>
+  <li>For better quality, you may try some additional keywords generally associated with better quality, for example
+    <ul class="sublist">
+      <li><i>in studio</i></li>
+      <li><i>studio recording</i></li>
+      <li><i>high quality</i></li>
+      <li><i>album</i> (for music)</li>
+    </ul>
+  </li>
+</ul>
