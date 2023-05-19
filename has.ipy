@@ -1,0 +1,129 @@
+#@title #Part3: Generate audio
+
+prompt = "A medieval war hero crossing through the dense forest. he has been defeated in a war and is seeking asylum. he is determined to gather his followers and strike back at his enemies. as he walks through he is planning his next course of attack plans. the music gives goosebumps as well as a soothing atmosphere. the music makes us feel like we should also take weapons and join him." #@param {type:"string"}
+output_dir = "AI-Generated-Sounds" #@param {type:"string"}
+duration = 30 #@param {type:"slider", min:2.5, max:30, step:2.5}
+guidance_scale = 3 #@param {type:"slider", min:2, max:5, step:0.5}
+seed = 1 #@param {type:"integer"}
+candidates = 4 #@param {type:"slider", min:2, max:5, step:1}
+batch = 1 #@param {type:"integer"}
+
+#@markdown <br>
+
+#@markdown <b>Style Transfer & Audio-to-Audio</b> settings – Ignore these settings if you just want to generate audio by text prompt.
+init_audio_file = "" #@param {type:"string"}
+
+# what_to_do = "Audio-to-audio generation" #@param ["Audio-to-audio generation", "Super-resolution", "Style Transfer"]
+what_to_do = None
+style_strength = 0.55 #@param {type:"slider", min:0, max:1, step:0.05}
+superresolution = False #@ param {type:"boolean"}
+
+if what_to_do == 'Audio-to-audio-generation': action = 'audio2audio'
+if what_to_do == 'Super-resolution': action = 'superres'
+if what_to_do == 'Style Transfer': action = 'style'
+if what_to_do == 'Inpaint': action = 'inpaint'
+
+ddim_steps = 200
+og_seed = seed
+og_duration = duration
+uniq_id = gen_id()
+sr = 16000
+
+# Prompt/input
+if ';' in prompt:
+  inputs = prompt.split(';')
+elif prompt == 'prompt_list':
+  inputs = prompt_list
+else:
+  inputs = [prompt]
+inputs = [x.strip() for x in inputs]
+
+# Output
+if output_dir == '':
+  if mount_drive is True:
+    dir_out = dir_tmp
+  if mount_drive is False:
+    dir_out = drive_root+'generated-audio'
+    if not os.path.isdir(dir_out):
+      os.mkdir(dir_out)
+else:
+  if not os.path.isdir(drive_root+output_dir):
+    os.mkdir(drive_root+output_dir)
+  dir_out = drive_root+fix_path(output_dir)
+
+if batch == 0: batch = 1  
+inputs = inputs * batch
+
+timer_start = time.time()
+total = len(inputs)
+action = 'generate'
+init_path = None
+
+for i, input in enumerate(inputs, 1):
+  
+  ndx_info = str(i)+'/'+str(total)+' '
+  print()
+
+  if init_audio_file != '':
+    if os.path.isfile(drive_root+init_audio_file):
+      init_path = drive_root+init_audio_file
+      if superresolution is True:
+        action = 'superres'
+      elif style_strength > 0:
+        init_filename = path_leaf(init_path)
+        op(c.title, ndx_info+'Styling audio:', init_path.replace(drive_root, ''), time=True)
+        op(c.title, 'With prompt:', input, time=True)
+        action = 'style'
+      else:
+        op(c.title, ndx_info+'Audio-to-audio generation:', init_path.replace(drive_root, ''), time=True)
+        # op(c.title, 'With prompt:', input, time=True)
+        input = None
+        action = 'audio2audio'
+      # Trim duration if init duration is shorter than given duration
+      init_y, init_sr = librosa.load(init_path, sr=None, mono=True)
+      init_duration = librosa.get_duration(init_y, init_sr)
+      duration = round_to_multiple(init_duration, 2.5) if init_duration < og_duration else duration
+      
+    else:
+      op(c.fail, ndx_info+'Init audio file not found!', time=True)
+      sys.exit('Make sure init_audio_file is a valid audio file and a valid file path relative to your My Drive.')
+  else:
+    op(c.title, ndx_info+'Generating audio:', input, time=True)
+
+  if og_seed == 0: seed = int(time.time())
+
+  if action == 'generate':
+    file_out = dir_out+uniq_id+'__'+slug(input)[:60]+'_'+str(i).zfill(3)+'.wav'
+    generated_audio = text2audio(input, duration, None, guidance_scale, seed, candidates, ddim_steps)
+  elif action == 'audio2audio':
+    file_out = dir_out+uniq_id+'__'+basename(init_path)+'_'+str(i).zfill(3)+'.wav'
+    generated_audio = text2audio('placeholder', duration, init_path, guidance_scale, seed, candidates, ddim_steps)
+  elif action == 'superres':
+    file_out = dir_out+uniq_id+'__'+basename(init_path)+'_'+str(i).zfill(3)+'.wav'
+    y, sr = librosa.load(init_path, sr=None)
+    duration = librosa.get_duration(y, sr=sr)
+    if duration > 30: duration = 30
+    generated_audio = superres(None, duration, init_path, guidance_scale, seed, candidates, ddim_steps)
+  elif action == 'style':
+    file_out = dir_out+uniq_id+'__'+basename(init_path)+'_'+slug(input)[:60]+'_'+str(i).zfill(3)+'.wav'
+    generated_audio = styleaudio(input, duration, init_path, style_strength, guidance_scale, seed, ddim_steps)
+  else:
+    op(c.fail, 'Something went wrong.')
+    sys.exit()
+
+  
+  sf.write(file_out, generated_audio.T, sr, subtype='PCM_24')
+  if os.path.isfile(file_out):
+    audio_player(generated_audio, sr=sr)
+    print()
+    op(c.ok, 'Saved as', file_out.replace(drive_root, ''), time=True)
+  else:
+    op(c.fail, 'Error saving', file_out.replace(drive_root, ''), time=True)
+  
+# -- END THINGS --
+
+timer_end = time.time()
+
+print()
+op(c.okb, 'Elapsed', timedelta(seconds=timer_end-timer_start), time=True)
+op(c.ok, 'FIN.')
